@@ -1,0 +1,79 @@
+
+### 🧠 Détails des composants
+
+| Composant | Rôle | Pourquoi |
+|------------|------|-----------|
+| **Conv2D** | Extraction de motifs visuels | Permet de repérer la balle, les raquettes et les rebonds |
+| **CBAM (Attention)** | Focus sur les zones importantes (balle, raquette) | Réduit le bruit visuel, améliore la stabilité |
+| **LSTM** | Intègre la dynamique temporelle | Apprend la direction et la vitesse du mouvement |
+| **Huber Loss** | Fonction de perte robuste | Moins sensible aux erreurs extrêmes que MSE |
+| **Replay Buffer** | Mémorise les transitions passées | Décorrèle les observations, améliore la convergence |
+| **Target Network** | Réseau cible mis à jour périodiquement | Stabilise l’apprentissage DQN |
+| **ε-Greedy Policy** | Exploration contrôlée | Décroît progressivement de 1 → 0.01 |
+
+---
+
+## 📊 Résultats d’apprentissage
+
+### 🟠 Début de l’entraînement
+![Début de l’entraînement](training_beginning.png)
+
+#### 🔍 Analyse :
+- Les 20 premiers épisodes montrent une récompense constante autour de **−21**, soit une **défaite complète** à chaque partie.
+- L’agent agit **aléatoirement** (phase d’exploration).
+- La moyenne des 100 derniers épisodes (**Avg100**) est de **−21**, signe qu’aucune stratégie n’est encore apprise.
+
+🧩 **Interprétation :**
+Le réseau commence à explorer le jeu. Il ne sait pas encore où est la balle ni comment bouger la raquette efficacement.
+
+---
+
+### 🟢 Milieu / Fin d’entraînement
+![Fin de l’entraînement](training_end.png)
+
+#### 🔍 Analyse :
+- Autour de l’épisode **100**, la récompense instantanée (**EpR**) passe de **−21 à −12**.
+- La moyenne des 100 derniers épisodes (**Avg100**) progresse de **−21 à −19.2**.
+- Le taux d’exploration (ε) diminue progressivement (~0.37), ce qui signifie que l’agent **agit de plus en plus selon ce qu’il a appris**.
+
+🧩 **Interprétation :**
+> L’agent commence à comprendre comment prolonger les échanges.
+> Il **perd moins vite**, anticipe mieux les rebonds et suit la balle plus longtemps.
+> La combinaison **CBAM + LSTM** aide à reconnaître **les zones importantes** et **les dynamiques temporelles**.
+
+---
+
+## 🚀 Synthèse et interprétation
+
+| Indicateur | Début | Après 100 épisodes | Progression |
+|-------------|--------|--------------------|--------------|
+| **EpR (Reward par épisode)** | −21 | −12 | 🔼 +9 points |
+| **Avg100 (Moyenne mobile)** | −21 | −19.2 | 🔼 +1.8 points |
+| **Exploration ε** | 1.00 | 0.37 | 🔽 baisse progressive |
+
+✅ **Ce que cela montre :**
+- L’agent commence à développer un comportement cohérent.
+- L’apprentissage est **lent mais régulier**, typique d’un DQN sur environnement visuel.
+- On observe une **transition claire entre exploration et exploitation**.
+
+---
+
+## 💡 Perspectives d’amélioration
+
+1. **Double DQN** → réduire la surestimation des Q-valeurs.
+2. **Dueling Network** → séparer la valeur de l’état et l’avantage de chaque action.
+3. **Prioritized Experience Replay** → rejouer plus souvent les transitions importantes.
+4. **Augmenter le nombre d’épisodes** (> 5000) pour convergence complète.
+5. **Optimiseur RMSProp** (comme dans l’article original de DeepMind).
+
+---
+
+## 📚 Références
+
+- Mnih et al., *"Human-level control through deep reinforcement learning"*, **Nature, 2015**
+- Woo et al., *"CBAM: Convolutional Block Attention Module"*, **ECCV, 2018**
+- Hochreiter & Schmidhuber, *"Long Short-Term Memory"*, **Neural Computation, 1997**
+
+---
+
+## 🧩 Exemple de logs d'entraînement
