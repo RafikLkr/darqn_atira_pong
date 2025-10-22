@@ -1,79 +1,99 @@
+🧠 Deep Q-Learning with CNN + CBAM + LSTM on Pong 🎮
+🎯 Objectif du projet
 
-### 🧠 Détails des composants
+L’objectif de ce projet est de développer un agent intelligent capable d’apprendre à jouer au jeu Pong (Atari) en observant uniquement les images brutes de l’écran.
+L’agent utilise un réseau de neurones profond (DQN) combiné à :
 
-| Composant | Rôle | Pourquoi |
-|------------|------|-----------|
-| **Conv2D** | Extraction de motifs visuels | Permet de repérer la balle, les raquettes et les rebonds |
-| **CBAM (Attention)** | Focus sur les zones importantes (balle, raquette) | Réduit le bruit visuel, améliore la stabilité |
-| **LSTM** | Intègre la dynamique temporelle | Apprend la direction et la vitesse du mouvement |
-| **Huber Loss** | Fonction de perte robuste | Moins sensible aux erreurs extrêmes que MSE |
-| **Replay Buffer** | Mémorise les transitions passées | Décorrèle les observations, améliore la convergence |
-| **Target Network** | Réseau cible mis à jour périodiquement | Stabilise l’apprentissage DQN |
-| **ε-Greedy Policy** | Exploration contrôlée | Décroît progressivement de 1 → 0.01 |
+🧩 CBAM (Convolutional Block Attention Module) pour concentrer son attention sur les zones et canaux d’image les plus pertinents (balle, raquette),
 
----
+🔁 LSTM (Long Short-Term Memory) pour mémoriser la dynamique temporelle du jeu (vitesse et trajectoire de la balle).
 
-## 📊 Résultats d’apprentissage
+🕹️ Présentation du jeu Pong
 
-### 🟠 Début de l’entraînement
-![Début de l’entraînement](training_beginning.png)
+Pong est un jeu d’arcade classique simulant une partie de tennis de table.
 
-#### 🔍 Analyse :
-- Les 20 premiers épisodes montrent une récompense constante autour de **−21**, soit une **défaite complète** à chaque partie.
-- L’agent agit **aléatoirement** (phase d’exploration).
-- La moyenne des 100 derniers épisodes (**Avg100**) est de **−21**, signe qu’aucune stratégie n’est encore apprise.
+Le joueur contrôle une raquette sur le côté gauche de l’écran pour renvoyer une balle.
 
-🧩 **Interprétation :**
-Le réseau commence à explorer le jeu. Il ne sait pas encore où est la balle ni comment bouger la raquette efficacement.
+Le but est d’empêcher la balle de sortir de son côté tout en essayant de marquer sur l’adversaire (droite).
 
----
+La récompense dans ce projet :
 
-### 🟢 Milieu / Fin d’entraînement
-![Fin de l’entraînement](training_end.png)
++1 pour un point gagné,
 
-#### 🔍 Analyse :
-- Autour de l’épisode **100**, la récompense instantanée (**EpR**) passe de **−21 à −12**.
-- La moyenne des 100 derniers épisodes (**Avg100**) progresse de **−21 à −19.2**.
-- Le taux d’exploration (ε) diminue progressivement (~0.37), ce qui signifie que l’agent **agit de plus en plus selon ce qu’il a appris**.
+-1 pour un point perdu,
 
-🧩 **Interprétation :**
-> L’agent commence à comprendre comment prolonger les échanges.
-> Il **perd moins vite**, anticipe mieux les rebonds et suit la balle plus longtemps.
-> La combinaison **CBAM + LSTM** aide à reconnaître **les zones importantes** et **les dynamiques temporelles**.
+0 sinon.
 
----
+Ce cadre est parfait pour le renforcement par apprentissage, car le but de l’agent est de maximiser la somme des récompenses cumulées.
 
-## 🚀 Synthèse et interprétation
+⚙️ Architecture du modèle
 
-| Indicateur | Début | Après 100 épisodes | Progression |
-|-------------|--------|--------------------|--------------|
-| **EpR (Reward par épisode)** | −21 | −12 | 🔼 +9 points |
-| **Avg100 (Moyenne mobile)** | −21 | −19.2 | 🔼 +1.8 points |
-| **Exploration ε** | 1.00 | 0.37 | 🔽 baisse progressive |
+L’architecture implémente un Deep Q-Network (DQN) enrichi par des modules d’attention et une mémoire temporelle :
 
-✅ **Ce que cela montre :**
-- L’agent commence à développer un comportement cohérent.
-- L’apprentissage est **lent mais régulier**, typique d’un DQN sur environnement visuel.
-- On observe une **transition claire entre exploration et exploitation**.
+Image (84x84x1) × 4 frames consécutives
+     │
+     ▼
+Conv2D (32 filtres, 8x8, stride 4)   → Détection grossière des objets
+Conv2D (64 filtres, 4x4, stride 2)   → Motifs intermédiaires
+Conv2D (64 filtres, 3x3, stride 1)   → Détails fins
+CBAM (Channel + Spatial Attention)   → Focus sur zones et canaux utiles
+Flatten + Dense(256, ReLU)           → Encodage visuel par frame
+TimeDistributed(...) × 4 frames      → Séquence temporelle
+LSTM(128)                            → Apprentissage de la dynamique (vitesse, direction)
+Dense(128, ReLU)
+Dense(nb_actions, Linear)            → Valeurs Q pour chaque action
 
----
 
-## 💡 Perspectives d’amélioration
+Perte : Huber Loss (plus stable que MSE)
+Optimiseur : Adam
+Réseau cible : mis à jour tous les 10 épisodes
+Stratégie : ε-greedy avec décroissance progressive de ε
 
-1. **Double DQN** → réduire la surestimation des Q-valeurs.
-2. **Dueling Network** → séparer la valeur de l’état et l’avantage de chaque action.
-3. **Prioritized Experience Replay** → rejouer plus souvent les transitions importantes.
-4. **Augmenter le nombre d’épisodes** (> 5000) pour convergence complète.
-5. **Optimiseur RMSProp** (comme dans l’article original de DeepMind).
+📊 Résultats d’apprentissage
+🟠 Début d’entraînement
 
----
+Épisodes 1 à 20 :
 
-## 📚 Références
+Les récompenses sont constantes autour de −21, correspondant à une défaite immédiate à chaque partie.
 
-- Mnih et al., *"Human-level control through deep reinforcement learning"*, **Nature, 2015**
-- Woo et al., *"CBAM: Convolutional Block Attention Module"*, **ECCV, 2018**
-- Hochreiter & Schmidhuber, *"Long Short-Term Memory"*, **Neural Computation, 1997**
+La moyenne mobile des 100 derniers épisodes (Avg100) reste stable à −21.
 
----
+L’agent explore aléatoirement sans encore apprendre de stratégie.
 
-## 🧩 Exemple de logs d'entraînement
+🧩 Interprétation :
+
+À ce stade, l’agent joue sans logique : il ne sait ni suivre la balle, ni anticiper les rebonds.
+Le réseau est en phase d’exploration et le Q-learning n’a pas encore convergé.
+
+🟢 Milieu/Fin d’entraînement
+
+Épisodes 100 à 120 :
+
+Les récompenses passent de −21 à environ −12 sur certains épisodes.
+
+La moyenne des 100 derniers épisodes (Avg100) s’améliore progressivement de −21 à −19.2.
+
+Le taux d’exploration (ε) diminue vers 0.37 : le modèle exploite davantage ses connaissances.
+
+🧩 Interprétation :
+
+Cette amélioration indique que l’agent commence à reconnaître certaines situations favorables, à suivre la balle plus longtemps, et à retarder la défaite.
+Le passage de −21 → −12 montre que l’agent perd moins vite, preuve d’un apprentissage des dynamiques visuelles et temporelles grâce au couple CBAM + LSTM.
+
+🚀 Conclusion et perspectives
+
+✅ Résultats :
+
+Passage de EpR = −21 → EpR = −12
+
+Moyenne 100 derniers épisodes : −21 → −19.2
+
+L’agent améliore sa survie et réagit mieux visuellement.
+
+⚙️ Interprétation technique :
+
+Le CNN+CBAM apprend à focaliser sur la balle et la raquette.
+
+Le LSTM aide à comprendre la direction et la vitesse du mouvement.
+
+Le DQN apprend lentement, mais les premières tendances sont claires : meilleure stabilité et réactivité.
